@@ -61,6 +61,14 @@ func osInitGo() *initCmds {
 		}
 	}
 
+	if err := netInit(); err != nil {
+		log.Printf("Failed to initialize network: %v", err)
+	}
+
+	if err := fsInit(); err != nil {
+		log.Printf("Failed to initialize filesystem: %v", err)
+	}
+
 	// Allows passing args to uinit via kernel parameters, for example:
 	//
 	// uroot.uinitargs="-v --foobar"
@@ -86,8 +94,8 @@ func osInitGo() *initCmds {
 			libinit.Command("/bin/uinit", ctty, mtty, uinitArgs),
 			libinit.Command("/buildbin/uinit", ctty, mtty, uinitArgs),
 
-			libinit.Command("/bin/defaultsh", ctty, mtty),
-			libinit.Command("/bin/sh", ctty, mtty),
+			// libinit.Command("/bin/defaultsh", ctty, mtty),
+			libinit.Command("/bin/bash", ctty),
 		},
 	}
 }

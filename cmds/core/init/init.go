@@ -14,11 +14,11 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os/exec"
 
 	"github.com/u-root/u-root/pkg/libinit"
+	"golang.org/x/sys/unix"
 )
 
 // initCmds has all the bits needed to continue
@@ -37,12 +37,12 @@ func main() {
 	flag.Parse()
 
 	log.Printf("Welcome to u-root!")
-	fmt.Println(`                              _`)
-	fmt.Println(`   _   _      _ __ ___   ___ | |_`)
-	fmt.Println(`  | | | |____| '__/ _ \ / _ \| __|`)
-	fmt.Println(`  | |_| |____| | | (_) | (_) | |_`)
-	fmt.Println(`   \__,_|    |_|  \___/ \___/ \__|`)
-	fmt.Println()
+	// fmt.Println(`                              _`)
+	// fmt.Println(`   _   _      _ __ ___   ___ | |_`)
+	// fmt.Println(`  | | | |____| '__/ _ \ / _ \| __|`)
+	// fmt.Println(`  | |_| |____| | | (_) | (_) | |_`)
+	// fmt.Println(`   \__,_|    |_|  \___/ \___/ \__|`)
+	// fmt.Println()
 
 	log.SetPrefix("init: ")
 
@@ -78,4 +78,5 @@ func main() {
 		log.Printf("%v", err)
 	}
 	log.Printf("Exiting...")
+	unix.Reboot(unix.LINUX_REBOOT_CMD_POWER_OFF)
 }

@@ -1,0 +1,2 @@
+iperf3 -6 -s
+iperf3 -6 -c fd14:988a:50ee:10d::2
