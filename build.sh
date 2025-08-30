@@ -1,16 +1,63 @@
+#!/bin/bash
+
 set -x
 set -e
 
-go build
+TMP_DIR=$(mktemp -d)
+trap "rm -rf '$TMP_DIR'" EXIT
 
-./u-root --go-build-tags=goshliner -defaultsh=gosh \
-    -files $(which hexdump):bin/hexdump \
-    -files $(which lspci):bin/lspci \
-    -files $(which ping):bin/ping \
-    -files $(which bash):bin/bash \
-    -files $(which iperf3):bin/iperf3 \
-    -files $(which netclient):bin/netclient \
-    -files $(which netserver):bin/netserver \
+convert_arch() {
+    case ${1} in
+        arm64 | aarch64)
+            echo "aarch64"
+            ;;
+        amd64 | x86_64)
+            echo "x86_64"
+            ;;
+    esac
+}
+
+convert_goarch() {
+    case ${1} in
+        arm64 | aarch64)
+            echo "arm64"
+            ;;
+        amd64 | x86_64)
+            echo "amd64"
+            ;;
+    esac
+}
+
+ARCH=${ARCH:=$(uname -m)}
+GOARCH=$(convert_goarch ${ARCH})
+FISHARCH=$(convert_arch ${ARCH})
+unset ARCH
+
+mkdir -p bin
+
+if [ ! -f bin/fish_${FISHARCH} ]; then
+    wget https://github.com/fish-shell/fish-shell/releases/download/4.1.2/fish-4.1.2-linux-${FISHARCH}.tar.xz \
+        -O bin/fish-${FISHARCH}.tar.xz
+    tar x -C bin -f bin/fish-${FISHARCH}.tar.xz
+    mv bin/fish bin/fish_${FISHARCH}
+fi
+
+GOARCH="" GOOS="" go build
+
+EXTRA_FILES=(
+    -files bin/fish_${FISHARCH}:bin/fish \
     -files bash_history.txt:root/.bash_history \
-    -o $HOME/data/initramfs.linux_amd64.cpio \
+)
+
+if [ $GOARCH = $(convert_goarch $(uname -m)) ] && [ $(uname -s) = "Linux" ]; then
+    EXTRA_FILES+=(
+        -files $(which hexdump):bin/hexdump \
+        -files $(which lspci):bin/lspci \
+        -files $(which iperf3):bin/iperf3 \
+    )
+fi
+
+GOARCH=${GOARCH} GOOS=linux ./u-root -defaultsh="" \
+    ${EXTRA_FILES[@]} \
+    -o $HOME/data/initramfs.linux_${GOARCH}.cpio \
     core ./cmds/exp/modprobe

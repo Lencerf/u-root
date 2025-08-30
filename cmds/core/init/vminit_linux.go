@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net"
@@ -20,6 +21,12 @@ const (
 	eth0AddrPrefix = "192.168.14."
 	eth0MacPrefix  = "ea:c2:14:80:10:"
 	gatewayIP      = "192.168.14.254"
+)
+
+var (
+	oakDice       = flag.Int("oak-dice", 0, "Oak dice")
+	oakEventLog   = flag.Int("oak-event-log", 0x13000, "Oak event log")
+	oakDiceLength = flag.Int("oak-dice-length", 12288, "Oak dice length")
 )
 
 func netInit() error {

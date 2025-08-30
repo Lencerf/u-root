@@ -94,8 +94,7 @@ func osInitGo() *initCmds {
 			libinit.Command("/bin/uinit", ctty, mtty, uinitArgs),
 			libinit.Command("/buildbin/uinit", ctty, mtty, uinitArgs),
 
-			// libinit.Command("/bin/defaultsh", ctty, mtty),
-			libinit.Command("/bin/bash", ctty),
+			libinit.Command("/bin/fish", ctty, mtty),
 		},
 	}
 }
