@@ -1,3 +1,9 @@
+dhclient -ipv4=true -ipv6=false -vv
 iperf3 -6 -s
 iperf3 -6 -c fd14:988a:50ee:10d::2
-dhclient -ipv4=true -ipv6=false -vv
+netserver -net vsock -addr 3:18030 -num 10
+netclient -net vsock -addr 2:18030
+netserver -net tcp -addr "[fd14:988a:50ee:10d::1]:18030" -num 3
+netclient -net tcp -addr "[fd14:988a:50ee:10d::2]:18030"
+ping -6 -c 5 fd14:988a:50ee:10d::2
+grep processor /proc/cpuinfo | wc -l
