@@ -14,6 +14,7 @@ import (
 	"github.com/u-root/u-root/pkg/boot/kexec"
 	"github.com/u-root/u-root/pkg/boot/linux"
 	"github.com/u-root/u-root/pkg/boot/util"
+	"github.com/u-root/u-root/pkg/boot/zboot"
 	"github.com/u-root/u-root/pkg/mount"
 	"github.com/u-root/uio/uio"
 	"golang.org/x/sys/unix"
@@ -199,7 +200,14 @@ func (li *LinuxImage) loadImage(loadOpts *loadOptions) (*os.File, *os.File, erro
 		return nil, nil, errNilKernel
 	}
 
-	k, err := CopyToFileIfNotRegular(util.TryGzipFilter(li.Kernel), loadOpts.verbose)
+	k1 := util.TryGzipFilter(li.Kernel)
+
+	k2, err := zboot.ExtractPayload(k1)
+	if err != nil {
+		return nil, nil, fmt.Errorf("extract payload: %v", err)
+	}
+
+	k, err := CopyToFileIfNotRegular(k2, loadOpts.verbose)
 	if err != nil {
 		return nil, nil, err
 	}
