@@ -24,6 +24,8 @@ import (
 	"reflect"
 	"strings"
 	"unsafe"
+
+	"github.com/ulikunitz/xz"
 )
 
 const minBootParamLen = 616
@@ -349,7 +351,8 @@ func (b *BzImage) MarshalBinary() ([]byte, error) {
 		return nil, ErrKCodeMissing
 	}
 	// First step, make sure we can compress the kernel.
-	dat, err := compress(b.KernelCode, "--lzma2=,dict=32MiB")
+	// dat, err := compress(b.KernelCode, "--lzma2=,dict=32MiB")
+	dat, err := compressGo(b.KernelCode, xz.WriterConfig{DictCap: 32 << 20})
 	if err != nil {
 		return nil, err
 	}
@@ -453,6 +456,43 @@ func compress(b []byte, dictOps string) ([]byte, error) {
 	// "_with_size").
 	buf := bytes.NewBuffer(dat)
 	if binary.Write(buf, binary.LittleEndian, uint32(len(b))); err != nil {
+		return nil, fmt.Errorf("failed to append the uncompressed size: %w", err)
+	}
+	return buf.Bytes(), nil
+}
+
+func compressGo(b []byte, opts xz.WriterConfig) ([]byte, error) {
+	Debug("b is %d bytes", len(b))
+	var buf bytes.Buffer
+
+	opts.CheckSum = xz.CRC32
+
+	w, err := opts.NewWriter(&buf)
+	if err != nil {
+		return nil, fmt.Errorf("could not create xz writer: %w", err)
+	}
+
+	if _, err := w.Write(b); err != nil {
+		return nil, fmt.Errorf("could not compress data: %w", err)
+	}
+
+	if err := w.Close(); err != nil {
+		return nil, fmt.Errorf("could not close xz writer: %w", err)
+	}
+	dat := buf.Bytes()
+	Debug("Compressed data is %d bytes, starts with %#02x", len(dat), dat[:32])
+	Debug("Last 16 bytes: %#02x", dat[len(dat)-16:])
+
+	// Append the original, uncompressed size of the payload.
+	// HEAR YE, HEAR YE: The uncompressed size of the payload is appended to the payload because
+	// the Linux boot process expects that the last 4 bytes of teh payload will contain the
+	// uncompressed size. This appending is only required if the compression format does not
+	// already satisfy this requirement. If this function is changed to use GZIP compression in
+	// the future then this code is not required. This code is required for compression formats
+	// such as bzip lzma xz lzo lz4 and zstd. See https://github.com/torvalds/linux/blob/master/arch/x86/boot/compressed/Makefile#L132-L145
+	// for an authoritative list of which file formats require the extra 4 bytes appended (look for
+	// "_with_size").
+	if binary.Write(&buf, binary.LittleEndian, uint32(len(b))); err != nil {
 		return nil, fmt.Errorf("failed to append the uncompressed size: %w", err)
 	}
 	return buf.Bytes(), nil
